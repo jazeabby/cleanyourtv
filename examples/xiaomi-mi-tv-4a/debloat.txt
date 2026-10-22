@@ -7,6 +7,26 @@
 #
 # Known quirk on this firmware: default_input_method points at com.baidu.input, which is not
 # installed, so no keyboard appears in search fields. Set Gboard as the IME (see README gotchas).
+#
+# Notes from a second unit on firmware QTG3.200305.006.6148 (MediaTek m7632, low-RAM mode, ro.adb.secure=1),
+# 2026-10. Same chassis as examples/xiaomi-mitv-mooq0 (croods), and that list applied cleanly here except
+# for packages this firmware does not ship (com.aha.mitv, com.mitv.milinkservice, com.xiaomi.mitv.handbook,
+# com.google.android.apps.tachyon). com.mitv.tvlock ships already disabled.
+# - Home claimants: com.duokan.factorytest declares HOME at priority 0, the same as the new launcher.
+#   Disable it before launcher/build-and-install.sh, as on the MOOQ0.
+# - Input/Source button sends KEY_RECORD (KEYCODE_MEDIA_RECORD, 130), and the only VIEW_INPUTS handler is
+#   the stock launcher's InputsPanelActivity. Once tvlauncher is disabled, install with INPUT_KEY_SERVICE=1
+#   and set "input_key_keycodes": [130] (config.xml or a theme); InputKeyService then opens the launcher's
+#   own Inputs dropdown. No vendor source picker exists (checked tvcenter, hotkey.dispatcher, mitv.service).
+# - The stock screensaver is com.google.android.backdrop. Point the screensaver at the launcher first:
+#   settings put secure screensaver_components com.gathin.tvhome/.ClockDream
+#   then disable backdrop and com.mitv.dream.
+# - Kept, as on the MOOQ0: com.xiaomi.android.tvsetup.partnercustomizer, com.mediatek.hotkey.dispatcher,
+#   com.mediatek.tvinput, com.mediatek.wwtv.setupwizard, com.mediatek.wwtv.tvcenter, mitv.service.
+# - Network ADB: persist.sys.usb.config=adb, and port 5555 stayed open after USB debugging was switched off
+#   and the TV restarted. Revoke the USB debugging authorisations too, and turn Developer options off.
+# Tested with the optional block below enabled: HDMI 1-3, AV and Live TV from the Inputs menu, the remote's
+# Home, Input, app and mic buttons, Netflix and YouTube. Freshly applied, not yet lived with for days.
 
 # Xiaomi telemetry
 com.miui.tv.analytics
@@ -38,3 +58,20 @@ fusion.android.tv.demo
 com.google.android.tvlauncher
 com.google.android.tvrecommendations
 com.google.android.leanbacklauncher.recommendations
+
+# Also disabled on firmware 6148 (see the notes above); uncomment what applies to yours
+# com.duokan.factorytest                        # claims HOME at the launcher's priority
+# com.google.android.leanbacklauncher
+# com.google.android.tv.bugreportsender         # automatic bug report upload
+# com.mitv.gallery                              # Mi Gallery
+# com.xiaomi.mitv.manualhelp                    # on-screen manual, a single activity
+# com.xiaomo.tv.milegal                         # Xiaomi legal / privacy screens
+# com.mstar.android.tv.disclaimercustomization  # vendor disclaimer screen
+# com.mediatek.wwtv.webview                     # vendor web view shell
+# com.xiaomi.wfdsinkhelperservice               # Miracast sink
+# com.xiaomi.mitv.mediaexplorer                 # USB media player
+# com.mitv.videoplayer                          # Mi video player
+# com.google.android.apps.mediashell            # Chromecast built-in
+# com.google.android.videos                     # Play Movies & TV
+# com.mitv.dream                                # MiDream screensaver, after the Clock dream is set
+# com.google.android.backdrop                   # ambient screensaver, after the Clock dream is set
