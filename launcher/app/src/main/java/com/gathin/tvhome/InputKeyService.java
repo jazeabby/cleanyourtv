@@ -13,7 +13,8 @@ import java.util.Map;
  * remote send KEYCODE_TV for it, others (KTC and Kalley Realtek Google TV remotes) KEYCODE_TV_INPUT; on Google TV
  * the stock launcher handles both, so with the stock launcher disabled the button does nothing. Buttons listed in
  * input_key_keycodes (config.xml or a theme) open the input switcher the same way, and app_keys start an app (a
- * YouTube button that only the stock launcher answered). Every other key passes through untouched.
+ * YouTube button that only the stock launcher answered). Where nothing on the TV answers VIEW_INPUTS once the stock
+ * launcher is gone, the launcher's own Inputs dropdown opens instead. Every other key passes through untouched.
  * Opt-in: INPUT_KEY_SERVICE=1 build-and-install.sh (or -InputKeyService on Windows) enables it.
  */
 public class InputKeyService extends AccessibilityService {
@@ -48,7 +49,11 @@ public class InputKeyService extends AccessibilityService {
             } else {
                 try {
                     startActivity(new Intent(ACTION_VIEW_INPUTS).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
-                } catch (ActivityNotFoundException ignored) {
+                } catch (ActivityNotFoundException e) {
+                    // Only the stock launcher answered VIEW_INPUTS (Xiaomi MiTV-MOOQ1), and it is disabled:
+                    // open this launcher's own Inputs dropdown instead.
+                    startActivity(new Intent(MainActivity.ACTION_SHOW_INPUTS)
+                            .setClass(this, MainActivity.class).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
                 }
             }
         }

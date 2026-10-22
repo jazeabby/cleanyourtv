@@ -91,6 +91,9 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     private static final int LAUNCHER_SETTINGS_REQUEST = 42;
     /** Sent by QuickSettingsActivity: open Launcher settings from here so Home rebuilds when they close. */
     static final String ACTION_LAUNCHER_SETTINGS = "com.gathin.tvhome.action.LAUNCHER_SETTINGS";
+    /** Sent by InputKeyService when nothing on the TV answers VIEW_INPUTS (Xiaomi MiTV-MOOQ1: only the stock
+     *  launcher's panel did): open this launcher's own Inputs dropdown instead. */
+    static final String ACTION_SHOW_INPUTS = "com.gathin.tvhome.action.SHOW_INPUTS";
     /** Tiles per row and dock slots (res/values/config.xml, columns). Set in onCreate. */
     static int COLUMNS = 4;
     private boolean rtlAppGrid;
@@ -187,6 +190,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     private boolean promptsPaused;
     /** Rebuild the tiles on resume: Home was fully hidden by an app, or Home was pressed. Not after a side panel such as Wi-Fi settings. */
     private boolean rebuildOnResume = true;
+    /** Open the Inputs dropdown once Home is resumed and laid out (ACTION_SHOW_INPUTS from InputKeyService). */
+    private boolean showInputsOnResume;
     /** The Inputs or Module cards dropdown while one is open, so onPause can close it. */
     private PopupWindow openPopup;
     /** Reorder mode is on (top-bar button). */
@@ -539,13 +544,21 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                     .build(), vpnCallback);
         }
         // Not after recreate(): the launch intent survives it and would open the settings again.
-        if (savedInstanceState == null) openLauncherSettingsIfAsked(getIntent());
+        if (savedInstanceState == null && !openLauncherSettingsIfAsked(getIntent())) showInputsIfAsked(getIntent());
     }
 
     private boolean openLauncherSettingsIfAsked(Intent intent) {
         if (intent == null || !ACTION_LAUNCHER_SETTINGS.equals(intent.getAction())) return false;
         setIntent(new Intent(Intent.ACTION_MAIN));
         startActivityForResult(new Intent(this, LauncherSettingsActivity.class), LAUNCHER_SETTINGS_REQUEST);
+        return true;
+    }
+
+    /** The dropdown hangs off the Inputs pill, so it waits for onResume and a laid-out root. */
+    private boolean showInputsIfAsked(Intent intent) {
+        if (intent == null || !ACTION_SHOW_INPUTS.equals(intent.getAction())) return false;
+        setIntent(new Intent(Intent.ACTION_MAIN));
+        showInputsOnResume = true;
         return true;
     }
 
@@ -558,6 +571,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     protected void onNewIntent(Intent intent) {
         super.onNewIntent(intent);
         if (openLauncherSettingsIfAsked(intent)) return;
+        if (showInputsIfAsked(intent)) return;
         if (intent == null || !intent.hasCategory(Intent.CATEGORY_HOME)) return;
         grid.scrollToPosition(0);
         lastFocused = 0;
@@ -593,6 +607,10 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         updateRace();
         updateWifiLabel();
         updateInputsButton();
+        if (showInputsOnResume) {
+            showInputsOnResume = false;
+            root.post(this::showInputs);
+        }
         if (showStats) startStats();
         sky.update();
         wallpaperPlayer.start();
